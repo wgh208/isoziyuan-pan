@@ -1,4 +1,4 @@
-const PREFIX = "pan-cloudflare/";
+export const PREFIX = "pan-cloudflare/";
 const SESSION_COOKIE = "pan_session";
 const SESSION_TTL = 60 * 60 * 24 * 7;
 const encoder = new TextEncoder();

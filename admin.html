@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>文件管理 · 爱搜云盘</title><meta name="description" content="爱搜云盘管理控制台：上传、整理文件并生成取件码与分享链接。"><link rel="stylesheet" href="/style.css?v=8">
+  <title>文件管理 · 爱搜云盘</title><meta name="description" content="爱搜云盘管理控制台：上传、整理文件并生成取件码与分享链接。"><link rel="stylesheet" href="/style.css?v=9">
 </head>
 <body>
   <section id="authView" class="auth-layout">
@@ -23,7 +23,7 @@
     <main class="main-content">
       <header class="page-head"><div><p class="eyebrow">FILE MANAGER</p><h1>文件管理</h1><p class="muted">整理文件、创建取件码，并控制不同储存空间。</p></div><div class="head-actions"><button class="button secondary" id="newFolder">＋ 新建文件夹</button><button class="button" id="uploadButton">↑ 上传文件</button><input id="filePicker" type="file" multiple hidden></div></header>
       <div id="notice" class="notice" hidden></div>
-      <section class="stats-grid"><div class="stat-card"><span>当前文件</span><strong id="fileCount">0</strong><small>当前文件夹</small></div><div class="stat-card"><span>文件夹</span><strong id="folderCount">0</strong><small>可继续嵌套管理</small></div><div class="stat-card"><span>当前空间</span><strong id="storageName">R2</strong><small id="storageHint">Cloudflare R2</small></div><div class="stat-card"><span>AWS 本月下载</span><strong id="awsUsage">—</strong><small id="awsUsageHint">启用 AWS 后显示</small></div></section>
+      <section class="stats-grid"><div class="stat-card"><span>当前文件</span><strong id="fileCount">0</strong><small>当前文件夹</small></div><div class="stat-card"><span>文件夹</span><strong id="folderCount">0</strong><small>可继续嵌套管理</small></div><div class="stat-card"><span>当前空间</span><strong id="storageName">R2</strong><small id="storageHint">Cloudflare R2</small></div><div class="stat-card usage-card"><span>已用容量</span><button class="usage-refresh" id="usageRefresh" type="button" title="重新统计储存桶用量" aria-label="重新统计储存桶用量">↻</button><strong id="usageBytes">—</strong><small id="usageHint">正在统计储存桶…</small><div class="usage-bar"><i id="usageFill"></i></div><small class="usage-note" id="usageNote"></small></div><div class="stat-card"><span>AWS 本月下载</span><strong id="awsUsage">—</strong><small id="awsUsageHint">启用 AWS 后显示</small></div></section>
       <section class="panel file-panel"><div class="file-toolbar"><div class="breadcrumbs" id="crumbs"></div><div class="toolbar-right"><span id="uploadStatus" class="status"></span><button class="icon-button" id="refresh" title="刷新">↻</button></div></div><div class="table-wrap"><table><thead><tr><th>文件名称</th><th>大小</th><th>更新时间</th><th class="align-right">操作</th></tr></thead><tbody id="fileRows"></tbody></table></div></section>
       <div class="footer-note"><span class="secure-icon">✓</span> 当前副本使用独立数据库与 `pan-cloudflare/` R2 前缀，不会影响原网盘数据。</div>
     </main>
@@ -32,15 +32,45 @@
   <dialog id="shareDialog" class="settings-dialog share-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">SHARE LINK</p><h2>分享文件</h2><p class="muted" id="shareFileName">—</p></div><button class="close-button" value="cancel">×</button></div><div id="shareStage"><p class="share-label">选择有效期</p><div class="share-options"><button type="button" class="share-option" data-style="day" data-value="1"><b>⚡ 1 天</b><small>24 小时内有效</small></button><button type="button" class="share-option active" data-style="day" data-value="7"><b>📅 7 天</b><small>一周内可取件</small></button><button type="button" class="share-option" data-style="day" data-value="30"><b>🌙 30 天</b><small>适合长期分享</small></button><button type="button" class="share-option" data-style="forever" data-value="0"><b>∞ 永久</b><small>链接永不过期</small></button></div><p id="shareStatus" class="dialog-status"></p></div><div id="shareResult" class="share-result" hidden><div class="share-code-card"><div class="share-code-top"><span>取件码</span><button type="button" class="table-button" id="copyCode">复制</button></div><strong id="shareCode">00000</strong></div><div class="share-link-row"><input id="shareUrl" readonly><button type="button" class="button" id="copyLink">复制链接</button></div><p class="share-result-hint">✓ 已为该文件生成专属取件链接，对方凭取件码或链接即可下载</p></div><div class="dialog-actions"><button type="button" class="button secondary" id="shareClose">关闭</button><span></span><button type="button" class="button" id="shareConfirm">生成分享链接</button></div></form></dialog>
   <div id="toast" class="toast"></div>
   <script>
-    const authView=document.querySelector('#authView'),appView=document.querySelector('#appView'),rows=document.querySelector('#fileRows'),crumbs=document.querySelector('#crumbs'),statusEl=document.querySelector('#uploadStatus'),notice=document.querySelector('#notice');let state={folder:'',storage:'r2',files:[],aws:null};
-    const esc=s=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));const fmt=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:n<1073741824?`${(n/1048576).toFixed(1)} MB`:`${(n/1073741824).toFixed(1)} GB`;const toast=m=>{const t=document.querySelector('#toast');t.textContent=m;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),3200)};
+    const authView=document.querySelector('#authView'),appView=document.querySelector('#appView'),rows=document.querySelector('#fileRows'),crumbs=document.querySelector('#crumbs'),statusEl=document.querySelector('#uploadStatus'),notice=document.querySelector('#notice');let state={folder:'',storage:'r2',files:[],aws:null,usage:null};
+    const esc=s=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));const fmt=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:n<1073741824?`${(n/1048576).toFixed(1)} MB`:`${(n/1073741824).toFixed(1)} GB`;const fmtDec=n=>{const v=Number(n||0);return v<1000?`${v} B`:v<1e6?`${(v/1e3).toFixed(1)} KB`:v<1e9?`${(v/1e6).toFixed(1)} MB`:v<1e12?`${(v/1e9).toFixed(2)} GB`:`${(v/1e12).toFixed(2)} TB`};// 桶用量按十进制（1 GB = 1,000,000,000 字节），与 R2 / S3 计费口径对齐
+    const toast=m=>{const t=document.querySelector('#toast');t.textContent=m;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),3200)};
     async function api(url,options){const r=await fetch(url,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'请求失败');return d}
-    async function boot(){try{const auth=await api('/api/auth/login');if(auth.admin)showApp()}catch(error){}}function showApp(){authView.hidden=true;appView.hidden=false;loadAws().then(load)}
+    async function boot(){try{const auth=await api('/api/auth/login');if(auth.admin)showApp()}catch(error){}}function showApp(){authView.hidden=true;appView.hidden=false;loadUsage();loadAws().then(load)}
     document.querySelector('#loginForm').onsubmit=async e=>{e.preventDefault();const error=document.querySelector('#loginError');error.textContent='';try{await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.querySelector('#password').value})});showApp()}catch(err){error.textContent=err.message}};
-    document.querySelector('#logout').onclick=async()=>{await fetch('/api/auth/logout',{method:'POST'});location.reload()};document.querySelector('#refresh').onclick=()=>load();
+    document.querySelector('#logout').onclick=async()=>{await fetch('/api/auth/logout',{method:'POST'});location.reload()};document.querySelector('#refresh').onclick=()=>{load();loadUsage()};document.querySelector('#usageRefresh').onclick=()=>loadUsage(true);
     async function loadAws(){try{state.aws=await api('/api/storage-config');document.querySelector('#awsState').textContent=state.aws.enabled?state.aws.bucket:'未配置';document.querySelector('#awsUsage').textContent=state.aws.enabled?fmt(Number(state.aws.usage?.bytes||0)):'—';document.querySelector('#awsUsageHint').textContent=state.aws.enabled?`本月 / ${state.aws.monthlyTransferGb} GB`:'启用 AWS 后显示'}catch(error){state.aws={enabled:false}}}
+    async function loadUsage(force){
+      const button=document.querySelector('#usageRefresh'),hint=document.querySelector('#usageHint');
+      button.disabled=true;
+      if(!state.usage)hint.textContent='正在遍历储存桶，首次统计稍候…';
+      try{state.usage=await api('/api/storage-usage'+(force?'?refresh=1':''))}catch(error){state.usage={error:error.message}}finally{button.disabled=false;renderUsage()}
+    }
+    function renderUsage(){
+      const value=document.querySelector('#usageBytes'),hint=document.querySelector('#usageHint'),fill=document.querySelector('#usageFill'),note=document.querySelector('#usageNote');
+      const isAws=state.storage==='aws';
+      const data=state.usage?(isAws?state.usage.aws:state.usage.r2):null;
+      const blank=(text,extra)=>{value.textContent='—';hint.textContent=text;hint.title='';fill.style.width='0';fill.className='';note.textContent=extra||''};
+      if(!data){blank(isAws?'暂无统计数据':'正在遍历储存桶…');return}
+      if(!data.ok&&!data.stale){blank('统计失败，可点右上角重试',data.error||'');return}
+      if(isAws&&!data.enabled){blank('AWS 尚未启用','配置并启用后自动统计');return}
+      const limit=isAws?Number(state.usage.capacityGb||0)*1e9:Number(state.usage.r2FreeTierBytes||0);
+      const bytes=Number(data.bytes||0);
+      const pct=limit>0?Math.min(100,bytes/limit*100):0;
+      value.textContent=fmtDec(bytes);
+      hint.textContent=`${data.bucket||(isAws?'AWS S3':'R2')} · ${data.objects} 个对象`;
+      hint.title=data.prefix?`统计范围：${data.prefix}`:'';
+      fill.style.width=(bytes>0?Math.max(pct,2):0)+'%';
+      fill.className=pct>=90?'danger':pct>=70?'warn':'';
+      const stamp=state.usage.at?new Date(state.usage.at*1000).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'—';
+      const parts=[`${isAws?'容量上限':'R2 免费额度'} ${fmtDec(limit)}`,`已用 ${pct.toFixed(pct<10?1:0)}%`,`${stamp} 更新`];
+      if(state.usage.cached)parts.push('缓存');
+      if(data.stale)parts.push('沿用上次结果');
+      if(data.limited)parts.push('结果可能不完整');
+      note.textContent=parts.join(' · ');
+    }
     function setStorage(storage){state.storage=storage;document.querySelectorAll('.storage-tab').forEach(x=>x.classList.toggle('active',x.dataset.storage===storage));load()};document.querySelectorAll('.storage-tab').forEach(x=>x.onclick=()=>setStorage(x.dataset.storage));
-    async function load(){try{const d=await api('/api/files?storage='+state.storage+'&folder='+encodeURIComponent(state.folder));state.files=d.files;render()}catch(error){if(error.message.includes('登录'))location.reload();else toast(error.message)}}
+    async function load(){try{const d=await api('/api/files?storage='+state.storage+'&folder='+encodeURIComponent(state.folder));state.files=d.files;render();renderUsage()}catch(error){if(error.message.includes('登录'))location.reload();else toast(error.message)}}
     function render(){const folders=state.files.filter(x=>x.kind==='folder'),files=state.files.filter(x=>x.kind==='file');document.querySelector('#fileCount').textContent=files.length;document.querySelector('#folderCount').textContent=folders.length;document.querySelector('#storageName').textContent=state.storage==='aws'?'AWS S3':'R2';document.querySelector('#storageHint').textContent=state.storage==='aws'?(state.aws?.bucket||'未配置'):'Cloudflare R2';notice.hidden=!(state.storage==='aws'&&!state.aws?.enabled);notice.textContent='AWS S3 尚未配置。请先点击左下角“AWS 储存桶设置”，验证后即可使用。';crumbs.innerHTML='<button class="crumb" data-go="">全部文件</button>'+state.folder.split('/').filter(Boolean).map((part,i)=>{const p=state.folder.split('/').slice(0,i+1).join('/')+'/';return `<span>/</span><button class="crumb" data-go="${encodeURIComponent(p)}">${esc(part)}</button>`}).join('');rows.innerHTML=state.files.length?state.files.map(file=>`<tr><td><div class="file-name"><span class="file-icon ${file.kind}">${file.kind==='folder'?'▰':'▤'}</span><strong>${esc(file.name)}</strong></div></td><td>${file.kind==='folder'?'文件夹':fmt(file.size)}</td><td>${new Date(file.updatedAt*1000).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td class="align-right row-actions">${file.kind==='folder'?`<button class="table-button" data-open="${encodeURIComponent(state.folder+file.name)}/">打开</button>`:`<a class="table-button" href="/api/download?id=${encodeURIComponent(file.id)}">下载</a><button class="table-button" data-share="${file.id}">分享</button>`}<button class="table-button delete" data-delete="${file.id}">删除</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty"><span>⌁</span><b>这里还没有文件</b><small>上传文件或创建一个文件夹开始管理</small></td></tr>'}
     crumbs.onclick=e=>{const target=e.target.closest('[data-go]');if(target){state.folder=decodeURIComponent(target.dataset.go);load()}};rows.onclick=e=>{const open=e.target.closest('[data-open]'),del=e.target.closest('[data-delete]'),share=e.target.closest('[data-share]');if(open){state.folder=decodeURIComponent(open.dataset.open);load()}if(del)removeFile(del.dataset.delete);if(share)shareFile(share.dataset.share)};
     document.querySelector('#newFolder').onclick=async()=>{const name=prompt('文件夹名称');if(!name)return;try{await api('/api/folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:state.folder+name,storage:state.storage})});load()}catch(error){toast(error.message)}};
