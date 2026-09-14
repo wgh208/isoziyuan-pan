@@ -1,0 +1,9 @@
+# Cloudflare / Wrangler 本地缓存
+.wrangler/
+.dev.vars
+
+# 依赖与系统文件
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
