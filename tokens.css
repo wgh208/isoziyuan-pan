@@ -1,0 +1,132 @@
+/* ============================================================
+   爱搜云盘 · 设计令牌（Design Tokens）
+   --------------------------------------------
+   全站唯一真相源。后台（admin.html）与取件页（index.html /
+   pickup.html）共同引用本文件，任何颜色、间距、圆角、阴影的
+   调整都只在这里改一次。
+
+   规范文档：DESIGN.md
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- 表面层级 ---------- */
+  --bg: #08090c;
+  --bg-elevated: #0c0e12;
+  --surface-1: #101217; /* 卡片 */
+  --surface-2: #15181e; /* 卡片内嵌块 */
+  --surface-3: #1b1f26; /* 控件 */
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.13);
+
+  /* ---------- 文本层级（对比度基于 --surface-1）---------- */
+  --text: #f4f6f8;       /* 约 14.9:1 */
+  --text-muted: #9ba4b0; /* 约 7.1:1  */
+  --text-dim: #7d8695;   /* 约 5.1:1 —— 已是可用的下限，勿再调暗 */
+
+  /* ---------- 强调色（全站唯一色族）---------- */
+  --accent: #6366f1;
+  --accent-hover: #7b7ef6;
+  --accent-soft: rgba(99, 102, 241, 0.14);
+  --accent-ring: rgba(99, 102, 241, 0.38);
+  --accent-text: #c7c9ff;
+  --accent-gradient: linear-gradient(140deg, #6366f1, #8b5cf6);
+
+  /* ---------- 语义色 ---------- */
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #f43f5e;
+  --danger-soft: rgba(244, 63, 94, 0.14);
+
+  /* ---------- 圆角 ---------- */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-pill: 99px;
+
+  /* ---------- 阴影（三级，勿自定义）---------- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 28px -10px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 28px 64px -18px rgba(0, 0, 0, 0.8);
+
+  /* ---------- 间距（8pt 节奏）---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* ---------- 字型与动效 ---------- */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.15s;
+}
+
+/* ============================================================
+   基础重置与全站氛围
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1000px 620px at 12% -12%, rgba(99, 102, 241, 0.1), transparent 62%),
+    radial-gradient(820px 520px at 100% 100%, rgba(56, 189, 248, 0.05), transparent 58%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  border-radius: var(--r-pill);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+  background-clip: content-box;
+}
+
+/* 尊重系统的减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

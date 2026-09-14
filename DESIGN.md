@@ -1,160 +1,143 @@
-# DESIGN.md — 爱搜品牌「极客磨砂 Aurora Glass」设计系统
+# DESIGN.md — 爱搜云盘设计系统规范
 
-> 适用项目：isoziyuan.com（博客） · ailxw.com（服务导航站） · pan.ailxw.com（爱搜云盘）
-> 参考基因：Linear.app 的锐利克制 × Vercel 的暗色氛围 × Stripe 的渐变活力
-> 版本：v1.0 · 2026-09-11
+> 适用项目：`pan.ailxw.com`（爱搜云盘）
+> 覆盖页面：取件页（`index.html` / `pickup.html`）、管理后台（`admin.html`）
+> 版本：v2.0 · 2026-09-14
+> 气质关键词：**深色、克制、精密** —— 向 Linear / Vercel 控制台靠，不用装饰性渐变堆叠
 
 ---
 
-## 1. Visual Theme & Atmosphere（视觉主题与氛围）
+## 0. 文件职责（**最重要的一节**）
 
-深色极客工作台美学：深夜蓝黑基底上悬浮磨砂玻璃面板，极光靛蓝-紫-天蓝三色渐变作为唯一能量色贯穿所有关键交互。
+| 文件 | 职责 | 谁引用 |
+|---|---|---|
+| `tokens.css` | **设计令牌 + 基础重置，全站唯一真相源** | 三个页面全部引用 |
+| `style.css` | 取件页组件样式 | `index.html`、`pickup.html` |
+| `admin.css` | 管理后台组件样式 | `admin.html` |
 
-- **关键词**：磨砂玻璃（Glassmorphism）· 极光渐变（Aurora Gradient）· 锐利克制 · 发光聚焦 · 深空沉浸
-- **光影倾向**：大面积柔和径向光晕（fixed 不随滚动）+ 面板内嵌顶部高光 `inset 0 1px 0 rgba(255,255,255,.06)`
-- **标志性记忆点**：面板/卡片顶部的 2.5px「能量条」渐变 + 聚焦时的外发光光晕
+引用顺序固定为 **`tokens.css` 在前，组件样式在后**。
 
-## 2. Color Palette & Roles（调色板与角色）
+### ⛔ 两条硬性纪律
 
-| 角色 | 值 | CSS 变量 | 场景 |
+1. **颜色、间距、圆角、阴影一律走 `var(--token)`，禁止硬编码色值。** 需要新颜色时先在 `tokens.css` 加令牌。
+2. **重写某个组件的样式时，必须保证「骨架 + 外观」完整自洽。**
+   > 本项目真实事故：一次 UI 重写只保留了「外观」类规则（颜色、阴影），把「骨架」类规则（`.center-page` 的 flex 居中、`.public-panel` 的宽度与内边距、`.admin-link` 的 `position: fixed`）整段丢掉了，导致取件页面板不居中、取件码输入框溢出屏幕、管理员入口掉到页面左上角。
+   >
+   > **判据：任何一条只写 `background` / `box-shadow` 而不写布局属性的组件规则，都是可疑的——它一定依赖另一处补骨架，那处一旦丢失就是线上事故。**
+
+---
+
+## 1. 设计令牌
+
+### 1.1 表面层级（由暗到亮）
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `--bg` | `#08090c` | 页面基底 |
+| `--bg-elevated` | `#0c0e12` | 侧边栏、输入框内底 |
+| `--surface-1` | `#101217` | 卡片、面板 |
+| `--surface-2` | `#15181e` | 卡片内嵌块、聚焦输入框 |
+| `--surface-3` | `#1b1f26` | 控件按钮 |
+
+边框：`--border` `rgba(255,255,255,.07)`、`--border-strong` `rgba(255,255,255,.13)`
+
+### 1.2 文本层级（对比度基于 `--surface-1`）
+
+| 令牌 | 值 | 对比度 | 用途 |
 |---|---|---|---|
-| 基底 | `#070a12` / `#080b12` | `--bg-primary` | body 基色 |
-| 玻璃表面 | `rgba(17,24,39,.62~.78)` | `--bg-surface` / `--panel` | 卡片、面板 |
-| 侧栏/导航 | `rgba(11,16,28,.82)` | `--bg-sidebar` | 固定侧栏 |
-| 主文本 | `#f1f5f9` | `--text-main` | 标题/正文 |
-| 次文本 | `#94a3b8` | `--text-muted` | 描述 |
-| 弱文本 | `#64748b` | `--text-sub` | 提示/占位 |
-| 强调主色 | `#6366f1` | `--accent` | 链接、激活态 |
-| 强调辅色 | `#8b5cf6` | `--accent-2` | 渐变末端 |
-| 点缀色 | `#38bdf8` | `--accent-3` | 箭头/悬浮箭标 |
-| 成功 | `#34d399` | `--green` | 成功吐司 |
-| 危险 | `#e11d48 → #be123c` | `--danger` | 删除按钮 |
-| 边框 | `rgba(255,255,255,.08)` | `--border-color` | 全部 1px 边框 |
-| 能量渐变 | `linear-gradient(90deg,#6366f1,#8b5cf6 55%,#38bdf8)` | `--energy-gradient` | 顶部能量条/进度 |
-| 按钮渐变 | `linear-gradient(135deg,#6366f1,#8b5cf6)` | `--accent-gradient` | 主按钮/Logo |
+| `--text` | `#f4f6f8` | ≈14.9:1 | 标题、正文 |
+| `--text-muted` | `#9ba4b0` | ≈7.1:1 | 描述、表格内容 |
+| `--text-dim` | `#7d8695` | ≈5.1:1 | 标签、脚注 |
 
-**光晕**：`--accent-glow: rgba(99,102,241,.28)`，用于 focus ring（`0 0 0 4px`）与 hover 外发光。
+> ⚠️ `--text-dim` **已是可读下限**（WCAG AA 要求 4.5:1）。不要再调暗，`#656d7a`（3.6:1）已被验证为不合格。
 
-## 3. Typography Rules（排版规则）
+### 1.3 强调色 —— 全站只有一个色族
 
-字体栈：`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif`
-
-| 层级 | Size | Weight | Line Height | Letter Spacing |
-|---|---|---|---|---|
-| Page Title | 28–30px | 800 | 1.15 | -0.03em |
-| Section Title | 20px | 750 | 1.3 | -0.015em |
-| Card Title | 15–17px | 700 | 1.4 | -0.01em |
-| Body | 14px | 400–550 | 1.6–1.7 | 0 |
-| Caption/Tag | 11–12px | 650 | 1.4 | 0–0.04em |
-| Eyebrow | 11–12px | 750–800 | 1.2 | 0.12–0.16em（大写） |
-
-## 4. Component Stylings（组件样式）
-
-```css
-/* 主按钮 */
-.button-primary {
-  background: linear-gradient(135deg,#6366f1,#8b5cf6);
-  border: 1px solid rgba(129,140,248,.35);
-  border-radius: 12px; padding: 11px 16px; color: #fff; font-weight: 750;
-  box-shadow: 0 6px 18px rgba(99,102,241,.35), inset 0 1px 0 rgba(255,255,255,.18);
-  transition: all .18s ease;
-}
-.button-primary:hover { transform: translateY(-1.5px); box-shadow: 0 10px 26px rgba(99,102,241,.5); filter: brightness(1.06); }
-
-/* 次级按钮 */
-.button-secondary {
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
-  color: #dbe3f0; border-radius: 12px; backdrop-filter: blur(10px);
-}
-
-/* 玻璃卡片 */
-.card-glass {
-  position: relative; overflow: hidden;
-  background: linear-gradient(155deg, rgba(23,32,54,.78), rgba(12,17,31,.92));
-  border: 1px solid rgba(255,255,255,.09); border-radius: 16px;
-  box-shadow: 0 8px 24px -6px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
-  backdrop-filter: blur(16px);
-}
-.card-glass::before { /* 能量条 */
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2.5px;
-  background: linear-gradient(90deg,#6366f1,#8b5cf6 55%,#38bdf8); opacity: 0;
-  transition: opacity .22s ease;
-}
-.card-glass:hover::before { opacity: 1; }
-.card-glass:hover { transform: translateY(-4px); border-color: rgba(129,140,248,.4); box-shadow: 0 16px 36px -8px rgba(0,0,0,.45), 0 0 28px rgba(99,102,241,.28); }
-
-/* 输入框聚焦 */
-.input:focus { border-color: rgba(99,102,241,.55); box-shadow: 0 0 0 4px rgba(99,102,241,.28), 0 0 24px rgba(99,102,241,.28); }
-
-/* 药丸标签 */
-.tag { font-size: 11px; padding: 2.5px 8px; border-radius: 999px;
-  background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.055); color: #64748b; }
-```
-
-## 5. Layout Principles（布局原则）
-
-- **间距基数**：4px，常用步进 8/12/16/20/24/32/48
-- **容器**：导航站 `max-width: 1440px`，主区 `padding: 32px 48px`（桌面）/ `20px 16px`（移动）
-- **卡片网格**：`repeat(auto-fill, minmax(280px, 1fr))`，gap 18px；移动端单列 gap 14–16px
-- **留白哲学**：卡片内 18px 统一内边距；区块间距 48px；搜索栏与内容间 40px
-
-## 6. Depth & Elevation（深度与层级）
-
-```css
---shadow-xs: 0 1px 2px rgba(0,0,0,.3);
---shadow-md: 0 8px 24px -6px rgba(0,0,0,.4);
---shadow-xl: 0 24px 60px -12px rgba(0,0,0,.55);
-```
-
-- 表面层级：`bg-primary → glass surface → elevated(.92) → modal(.97 + blur 28px)`
-- Z-index：sidebar 50 / sticky header 40 / bottom-nav 80 / modal 100
-- 毛玻璃参数：卡片 `blur(16px)`，面板 `blur(20~24px)`，弹窗遮罩 `blur(8px)` + `rgba(4,8,18,.66)`
-
-## 7. Do's and Don'ts（规范与禁忌）
-
-**Do's**
-1. 关键交互只用一个渐变体系（靛蓝→紫→天蓝），全局不超过一个强调色族
-2. 所有面板加 `inset 0 1px 0 rgba(255,255,255,.05)` 顶部内高光
-3. 聚焦态必须有光晕（4px spread ring + 外发光）
-4. hover 位移克制在 `-2px ~ -4px`
-5. 移动端触控目标 ≥ 44×44px，底部悬浮元素避让 `env(safe-area-inset-bottom)`
-6. 背景光晕用 `background-attachment: fixed`
-
-**Don'ts**
-1. ❌ 禁止在浅色 UI 上直接套用暗色玻璃（light 主题必须独立 token）
-2. ❌ 禁止多种渐变色族混用（如粉色/橙色渐变）
-3. ❌ 禁止大范围高饱和底色，强调色占比 ≤ 10%
-4. ❌ 禁止无过渡的 hover 状态生硬切换
-5. ❌ 禁止在磨砂卡片上再叠加磨砂卡片超过两层（模糊叠糊）
-
-## 8. Responsive Behavior（响应式行为）
-
-| 断点 | 布局 |
+| 令牌 | 值 |
 |---|---|
-| ≥ 900px | 侧栏 260px 固定 + 网格自适应 |
-| < 900px | 侧栏抽屉化（`translateX(-100%)`），单列卡片，底部 Tab 导航（首页/分类/搜索/联系） |
-| < 500px | 面板内边距收紧至 20px，取件码格 54px 高 |
+| `--accent` | `#6366f1` |
+| `--accent-hover` | `#7b7ef6` |
+| `--accent-soft` | `rgba(99,102,241,.14)` |
+| `--accent-ring` | `rgba(99,102,241,.38)` |
+| `--accent-text` | `#c7c9ff` |
+| `--accent-gradient` | `linear-gradient(140deg,#6366f1,#8b5cf6)` |
 
-- 触控目标 ≥ 44px；移动端 sticky 头部 `top: 10px`
-- 动效尊重 `prefers-reduced-motion: reduce`
+`--accent-gradient` **仅用于 Logo 方块**，不用于大面积背景、卡片或统计数字。
 
-## 9. Agent Prompt Guide（AI 代理提示指南）
+语义色：`--success` `#34d399`、`--warn` `#fbbf24`、`--danger` `#f43f5e`、`--danger-soft` `rgba(244,63,94,.14)`
 
-**Quick Reference**：暗色基底 `#070a12` + 玻璃表面 `rgba(17,24,39,.7)` + 靛蓝强调 `#6366f1`，能量渐变 `90deg #6366f1→#8b5cf6 55%→#38bdf8`，卡片 16px 圆角 + 顶部 2.5px 渐变能量条 + hover 上浮 4px 发光。
+### 1.4 形状与动效
 
-**Component Prompts**：
-1. "生成一张极客磨砂风格工具卡片：深色玻璃背景、顶部三色渐变能量条、左侧渐变 Logo 方块、药丸标签、hover 上浮发光"
-2. "生成一个居中式取件码输入面板：5 格大号输入框，聚焦时靛蓝光晕，底部渐变主按钮"
-3. "生成一个磨砂玻璃侧边导航栏：渐变 Logo、当前项靛蓝渐变高亮、悬停右移 2px"
-4. "生成一个居中弹窗：深色毛玻璃卡片 22px 圆角、上升入场动画、行式联系信息列表"
-5. "生成一个数据统计卡：玻璃面板 + 顶部能量条 + hover 上浮，数值 800 字重白色"
+- 圆角：`--r-xs` 6 / `--r-sm` 8 / `--r-md` 10 / `--r-lg` 14 / `--r-xl` 18 / `--r-pill` 99
+- 阴影三级：`--shadow-sm` / `--shadow-md` / `--shadow-lg`，**不自定义任意阴影**
+- 缓动统一 `--ease: cubic-bezier(.4,0,.2,1)`，时长 `--dur: .15s`（进度条等长动效可到 `.5s`）
+- 间距走 8pt 节奏：`--sp-1` 4 / `--sp-2` 8 / `--sp-3` 12 / `--sp-4` 16 / `--sp-5` 20 / `--sp-6` 24 / `--sp-8` 32 / `--sp-10` 40
 
-**Iteration Guide**：
-1. 强调色永远从 token 取，不要引入新色相
-2. 阴影统一三级体系，不自定义任意阴影
-3. 圆角体系：输入 10–12px / 卡片 16–18px / 弹窗 20–22px / 药丸 999px
-4. 所有动画 150–250ms，缓动 `cubic-bezier(0.16,1,0.3,1)` 入场
-5. 深浅双主题必须同时验收
-6. 移动端优先验证 390px 视口
-7. 渐变只用于能量条、主按钮、Logo 三处，克制使用
-8. 聚焦可见性（focus ring）不可省略
+---
+
+## 2. 页面规范
+
+### 2.1 取件页（`index.html` / `pickup.html`）
+
+- 目标：**一屏之内完成，不出现滚动条**
+- 结构：`body.center-page`（flex 居中）→ `main.panel.public-panel`（`min(440px,100%)`）
+- 卡片内边距 `34px 30px 26px`，圆角 `--r-xl`，阴影 `--shadow-lg`
+- 取件码格子：5 列等宽、高 60px、等宽字体、聚焦时上浮 2px + 4px 光晕
+- 管理员入口 `.admin-link`：`position: fixed` 右上角，玻璃胶囊
+- 状态类（加在 `.public-panel` 上）：
+  - `is-loading` —— 标题呼吸动画，暗示「正在处理」
+  - `is-error` —— Logo 与标题转 `--danger`，**文案必须翻译成人话**（禁止把 `Failed to fetch` 直接显示给用户）
+  - 状态类在 `pickup.html` 的 `fetch` 回调里切换
+
+### 2.2 管理后台（`admin.html`）
+
+- 侧边栏固定 244px：品牌区 → 导航 → 储存空间分组 → 底部操作
+- 导航激活态：**2px 指示条 + `--accent-soft` 底色**（不用整块渐变）
+- 统计卡网格：`repeat(auto-fit, minmax(190px,1fr))`，`--surface-1` + hover 微亮
+- 文件表格：列宽固定（名称自适应，其余定宽，避免刷新时跳动）、`tabular-nums` 对齐、超长文件名省略号
+- 弹窗：视口居中（`margin: auto`）、模糊遮罩、圆角 `--r-xl`
+- 取件码展示：等宽字体 32px、字距 `.16em`
+
+---
+
+## 3. 无障碍要求
+
+1. 正文与背景对比度 ≥ 4.5:1，大字 ≥ 3:1
+2. 所有可交互元素有可见聚焦态（4px 光晕或 3px ring），且**不可用 `outline: none` 单删**
+3. `:focus` 与 `:focus-visible` **样式必须一致**——否则 `autofocus` 或程序化聚焦会落在弱样式上
+4. 移动端触控目标 ≥ 44×44px（取件码格子 52px、主按钮 ≈48px）
+5. 尊重 `prefers-reduced-motion: reduce`（已在 `tokens.css` 全局处理）
+6. 取件码格子带 `aria-label`，数字用 `inputmode="numeric"`
+
+---
+
+## 4. 响应式断点
+
+| 断点 | 行为 |
+|---|---|
+| ≤ 1024px | 后台主区内边距收紧、统计卡换成 `minmax(165px,1fr)` |
+| ≤ 720px | 后台侧栏改为顶部横排、表格工具条竖排、弹窗网格单列 |
+| ≤ 460px | 取件卡片内边距 30/20、格子 52px、管理员入口缩小并贴边 |
+| 高度 ≤ 620px | 取件页顶部对齐、Logo 与格子压缩，避免出现滚动条 |
+
+移动端验收基线：**390×844**。
+
+---
+
+## 5. 维护速查
+
+```bash
+# 改完全站配色 → 只动 tokens.css
+# 改取件页 → style.css
+# 改后台 → admin.css
+# 三者都不要忘记：改完必须截图自检（见 headless-ui-verification 技能）
+```
+
+**提交前自检清单**
+
+- [ ] 没有硬编码色值（除 `rgba()` 白色描边、Logo 渐变）
+- [ ] 新增组件规则自带完整骨架（含布局属性）
+- [ ] 次级文字未低于 `--text-dim`
+- [ ] 聚焦态可见
+- [ ] 三个页面都截图看过（后台需处理登录态）
+- [ ] 样式版本号 `?v=` 已递增
