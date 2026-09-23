@@ -6,14 +6,14 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "isoziyuan-pan-db",
-      "database_id": "109a673e-778b-4429-a4eb-a9742551a79e"
+      "database_name": "pan-isoziyuan-db",
+      "database_id": "bcd15426-f064-408f-beb6-7e649deb08aa"
     }
   ],
   "r2_buckets": [
     {
       "binding": "R2",
-      "bucket_name": "forum-uploads"
+      "bucket_name": "pan-forum-uploads"
     }
   ]
 }
